@@ -1,4 +1,4 @@
-import type { TargetDemand, ActualUtilization, ProcessedAsset, AIInsight } from "./types";
+import type { TargetDemand, ActualUtilization, ProcessedAsset, AIInsight, MonthlyUtilization } from "./types";
 
 export function getUtilizationStatus(pct: number): ProcessedAsset["utilization_status"] {
   if (pct < 50) return "Underutilized";
@@ -71,6 +71,15 @@ export function generateAIInsights(assets: ProcessedAsset[]): AIInsight[] {
 
     return { asset_name: asset.asset_name, risk_level, problem, recommendation };
   });
+}
+
+export function extractMonthlyUtilization(actuals: ActualUtilization[]): MonthlyUtilization[] {
+  return actuals.map((a) => ({
+    asset_name: a.asset_name,
+    site: a.site,
+    month: a.month,
+    utilization_pct: a.utilization_pct,
+  }));
 }
 
 const STORAGE_KEY = "medequip_dashboard_data";

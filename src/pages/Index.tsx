@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Activity, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CsvUploader } from "@/components/CsvUploader";
@@ -6,13 +6,16 @@ import { KpiCards } from "@/components/KpiCards";
 import { AssetTable } from "@/components/AssetTable";
 import { DemandCapacityChart } from "@/components/DemandCapacityChart";
 import { AIInsights } from "@/components/AIInsights";
+import { DashboardFilters } from "@/components/DashboardFilters";
+import { UtilizationTrendChart } from "@/components/UtilizationTrendChart";
 import {
   mergeAndProcess,
+  extractMonthlyUtilization,
   saveToLocalStorage,
   loadFromLocalStorage,
   clearLocalStorage,
 } from "@/lib/processing";
-import type { ProcessedAsset, TargetDemand, ActualUtilization } from "@/lib/types";
+import type { ProcessedAsset, TargetDemand, ActualUtilization, MonthlyUtilization } from "@/lib/types";
 
 const TARGET_COLS = ["asset_name", "team", "target_cases"];
 const ACTUAL_COLS = [
@@ -26,17 +29,27 @@ const ACTUAL_COLS = [
   "equipment_count",
 ];
 
+const MONTHLY_KEY = "medequip_monthly_data";
+
 export default function Index() {
   const [targets, setTargets] = useState<TargetDemand[] | null>(null);
   const [actuals, setActuals] = useState<ActualUtilization[] | null>(null);
   const [processed, setProcessed] = useState<ProcessedAsset[]>([]);
+  const [monthly, setMonthly] = useState<MonthlyUtilization[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Filters
+  const [filterAsset, setFilterAsset] = useState("__all__");
+  const [filterSite, setFilterSite] = useState("__all__");
+  const [filterMonth, setFilterMonth] = useState("__all__");
 
   // Restore from localStorage on mount
   useEffect(() => {
     const saved = loadFromLocalStorage();
-    if (saved && saved.length > 0) {
-      setProcessed(saved);
+    if (saved && saved.length > 0) setProcessed(saved);
+    const savedMonthly = localStorage.getItem(MONTHLY_KEY);
+    if (savedMonthly) {
+      try { setMonthly(JSON.parse(savedMonthly)); } catch { /* ignore */ }
     }
   }, []);
 
@@ -46,8 +59,11 @@ export default function Index() {
     setLoading(true);
     const timer = setTimeout(() => {
       const result = mergeAndProcess(targets, actuals);
+      const monthlyData = extractMonthlyUtilization(actuals);
       setProcessed(result);
+      setMonthly(monthlyData);
       saveToLocalStorage(result);
+      localStorage.setItem(MONTHLY_KEY, JSON.stringify(monthlyData));
       setLoading(false);
     }, 600);
     return () => clearTimeout(timer);
@@ -57,14 +73,39 @@ export default function Index() {
     setTargets(null);
     setActuals(null);
     setProcessed([]);
+    setMonthly([]);
+    setFilterAsset("__all__");
+    setFilterSite("__all__");
+    setFilterMonth("__all__");
     clearLocalStorage();
+    localStorage.removeItem(MONTHLY_KEY);
   }, []);
+
+  // Derive filter options from full dataset
+  const allAssets = useMemo(() => [...new Set(processed.map((d) => d.asset_name))].sort(), [processed]);
+  const allSites = useMemo(() => [...new Set(processed.map((d) => d.site))].sort(), [processed]);
+  const allMonths = useMemo(() => [...new Set(monthly.map((d) => d.month))].sort(), [monthly]);
+
+  // Filtered data
+  const filteredProcessed = useMemo(() => {
+    let data = processed;
+    if (filterAsset !== "__all__") data = data.filter((d) => d.asset_name === filterAsset);
+    if (filterSite !== "__all__") data = data.filter((d) => d.site === filterSite);
+    return data;
+  }, [processed, filterAsset, filterSite]);
+
+  const filteredMonthly = useMemo(() => {
+    let data = monthly;
+    if (filterAsset !== "__all__") data = data.filter((d) => d.asset_name === filterAsset);
+    if (filterSite !== "__all__") data = data.filter((d) => d.site === filterSite);
+    if (filterMonth !== "__all__") data = data.filter((d) => d.month === filterMonth);
+    return data;
+  }, [monthly, filterAsset, filterSite, filterMonth]);
 
   const hasDashboard = processed.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2.5">
@@ -88,7 +129,6 @@ export default function Index() {
       </header>
 
       <main className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Upload Section */}
         {!hasDashboard && (
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-4">Upload Data</h2>
@@ -109,7 +149,6 @@ export default function Index() {
           </section>
         )}
 
-        {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -117,15 +156,26 @@ export default function Index() {
           </div>
         )}
 
-        {/* Dashboard */}
         {hasDashboard && !loading && (
           <>
-            <KpiCards data={processed} />
+            <DashboardFilters
+              assets={allAssets}
+              sites={allSites}
+              months={allMonths}
+              selectedAsset={filterAsset}
+              selectedSite={filterSite}
+              selectedMonth={filterMonth}
+              onAssetChange={setFilterAsset}
+              onSiteChange={setFilterSite}
+              onMonthChange={setFilterMonth}
+            />
+            <KpiCards data={filteredProcessed} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DemandCapacityChart data={processed} />
-              <AssetTable data={processed} />
+              <DemandCapacityChart data={filteredProcessed} />
+              <AssetTable data={filteredProcessed} />
             </div>
-            <AIInsights data={processed} />
+            <UtilizationTrendChart data={filteredMonthly} />
+            <AIInsights data={filteredProcessed} />
           </>
         )}
       </main>
