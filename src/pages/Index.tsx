@@ -8,9 +8,11 @@ import { DemandCapacityChart } from "@/components/DemandCapacityChart";
 import { AIInsights } from "@/components/AIInsights";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { UtilizationTrendChart } from "@/components/UtilizationTrendChart";
+import { SimulationPanel } from "@/components/SimulationPanel";
 import {
   mergeAndProcess,
   extractMonthlyUtilization,
+  getUtilizationStatus,
   saveToLocalStorage,
   loadFromLocalStorage,
   clearLocalStorage,
