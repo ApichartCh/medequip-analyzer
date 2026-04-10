@@ -198,6 +198,14 @@ export default function Index() {
               <DemandCapacityChart data={filteredProcessed} />
               <AssetTable data={filteredProcessed} />
             </div>
+            <SimulationPanel
+              data={processed}
+              overrides={equipOverrides}
+              onOverrideChange={(name, count) =>
+                setEquipOverrides((prev) => ({ ...prev, [name]: count }))
+              }
+              onReset={() => setEquipOverrides({})}
+            />
             <UtilizationTrendChart data={filteredMonthly} />
             <AIInsights data={filteredProcessed} />
           </>
