@@ -77,12 +77,33 @@ export default function Index() {
     setActuals(null);
     setProcessed([]);
     setMonthly([]);
+    setEquipOverrides({});
     setFilterAsset("__all__");
     setFilterSite("__all__");
     setFilterMonth("__all__");
     clearLocalStorage();
     localStorage.removeItem(MONTHLY_KEY);
   }, []);
+
+  // Apply equipment_count overrides to recalculate capacity & gap
+  const simulatedProcessed = useMemo(() => {
+    if (Object.keys(equipOverrides).length === 0) return processed;
+    return processed.map((asset) => {
+      const override = equipOverrides[asset.asset_name];
+      if (override === undefined || override === asset.equipment_count) return asset;
+      const capacity_per_year = Math.round(
+        (asset.operation_hr * 60 / asset.cycle_time) * 365 * override
+      );
+      const gap = asset.target_cases - capacity_per_year;
+      return {
+        ...asset,
+        equipment_count: override,
+        capacity_per_year,
+        gap,
+        utilization_status: getUtilizationStatus(asset.utilization_pct),
+      };
+    });
+  }, [processed, equipOverrides]);
 
   // Derive filter options from full dataset
   const allAssets = useMemo(() => [...new Set(processed.map((d) => d.asset_name))].sort(), [processed]);
