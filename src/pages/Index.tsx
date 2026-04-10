@@ -106,17 +106,17 @@ export default function Index() {
   }, [processed, equipOverrides]);
 
   // Derive filter options from full dataset
-  const allAssets = useMemo(() => [...new Set(processed.map((d) => d.asset_name))].sort(), [processed]);
-  const allSites = useMemo(() => [...new Set(processed.map((d) => d.site))].sort(), [processed]);
+  const allAssets = useMemo(() => [...new Set(simulatedProcessed.map((d) => d.asset_name))].sort(), [simulatedProcessed]);
+  const allSites = useMemo(() => [...new Set(simulatedProcessed.map((d) => d.site))].sort(), [simulatedProcessed]);
   const allMonths = useMemo(() => [...new Set(monthly.map((d) => d.month))].sort(), [monthly]);
 
   // Filtered data
   const filteredProcessed = useMemo(() => {
-    let data = processed;
+    let data = simulatedProcessed;
     if (filterAsset !== "__all__") data = data.filter((d) => d.asset_name === filterAsset);
     if (filterSite !== "__all__") data = data.filter((d) => d.site === filterSite);
     return data;
-  }, [processed, filterAsset, filterSite]);
+  }, [simulatedProcessed, filterAsset, filterSite]);
 
   const filteredMonthly = useMemo(() => {
     let data = monthly;
@@ -126,7 +126,7 @@ export default function Index() {
     return data;
   }, [monthly, filterAsset, filterSite, filterMonth]);
 
-  const hasDashboard = processed.length > 0;
+  const hasDashboard = simulatedProcessed.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
