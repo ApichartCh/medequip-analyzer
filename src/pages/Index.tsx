@@ -8,9 +8,11 @@ import { DemandCapacityChart } from "@/components/DemandCapacityChart";
 import { AIInsights } from "@/components/AIInsights";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { UtilizationTrendChart } from "@/components/UtilizationTrendChart";
+import { SimulationPanel } from "@/components/SimulationPanel";
 import {
   mergeAndProcess,
   extractMonthlyUtilization,
+  getUtilizationStatus,
   saveToLocalStorage,
   loadFromLocalStorage,
   clearLocalStorage,
@@ -37,6 +39,7 @@ export default function Index() {
   const [processed, setProcessed] = useState<ProcessedAsset[]>([]);
   const [monthly, setMonthly] = useState<MonthlyUtilization[]>([]);
   const [loading, setLoading] = useState(false);
+  const [equipOverrides, setEquipOverrides] = useState<Record<string, number>>({});
 
   // Filters
   const [filterAsset, setFilterAsset] = useState("__all__");
@@ -74,6 +77,7 @@ export default function Index() {
     setActuals(null);
     setProcessed([]);
     setMonthly([]);
+    setEquipOverrides({});
     setFilterAsset("__all__");
     setFilterSite("__all__");
     setFilterMonth("__all__");
@@ -81,18 +85,38 @@ export default function Index() {
     localStorage.removeItem(MONTHLY_KEY);
   }, []);
 
+  // Apply equipment_count overrides to recalculate capacity & gap
+  const simulatedProcessed = useMemo(() => {
+    if (Object.keys(equipOverrides).length === 0) return processed;
+    return processed.map((asset) => {
+      const override = equipOverrides[asset.asset_name];
+      if (override === undefined || override === asset.equipment_count) return asset;
+      const capacity_per_year = Math.round(
+        (asset.operation_hr * 60 / asset.cycle_time) * 365 * override
+      );
+      const gap = asset.target_cases - capacity_per_year;
+      return {
+        ...asset,
+        equipment_count: override,
+        capacity_per_year,
+        gap,
+        utilization_status: getUtilizationStatus(asset.utilization_pct),
+      };
+    });
+  }, [processed, equipOverrides]);
+
   // Derive filter options from full dataset
-  const allAssets = useMemo(() => [...new Set(processed.map((d) => d.asset_name))].sort(), [processed]);
-  const allSites = useMemo(() => [...new Set(processed.map((d) => d.site))].sort(), [processed]);
+  const allAssets = useMemo(() => [...new Set(simulatedProcessed.map((d) => d.asset_name))].sort(), [simulatedProcessed]);
+  const allSites = useMemo(() => [...new Set(simulatedProcessed.map((d) => d.site))].sort(), [simulatedProcessed]);
   const allMonths = useMemo(() => [...new Set(monthly.map((d) => d.month))].sort(), [monthly]);
 
   // Filtered data
   const filteredProcessed = useMemo(() => {
-    let data = processed;
+    let data = simulatedProcessed;
     if (filterAsset !== "__all__") data = data.filter((d) => d.asset_name === filterAsset);
     if (filterSite !== "__all__") data = data.filter((d) => d.site === filterSite);
     return data;
-  }, [processed, filterAsset, filterSite]);
+  }, [simulatedProcessed, filterAsset, filterSite]);
 
   const filteredMonthly = useMemo(() => {
     let data = monthly;
@@ -102,7 +126,7 @@ export default function Index() {
     return data;
   }, [monthly, filterAsset, filterSite, filterMonth]);
 
-  const hasDashboard = processed.length > 0;
+  const hasDashboard = simulatedProcessed.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -174,6 +198,14 @@ export default function Index() {
               <DemandCapacityChart data={filteredProcessed} />
               <AssetTable data={filteredProcessed} />
             </div>
+            <SimulationPanel
+              data={processed}
+              overrides={equipOverrides}
+              onOverrideChange={(name, count) =>
+                setEquipOverrides((prev) => ({ ...prev, [name]: count }))
+              }
+              onReset={() => setEquipOverrides({})}
+            />
             <UtilizationTrendChart data={filteredMonthly} />
             <AIInsights data={filteredProcessed} />
           </>
