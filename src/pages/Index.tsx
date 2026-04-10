@@ -39,6 +39,7 @@ export default function Index() {
   const [processed, setProcessed] = useState<ProcessedAsset[]>([]);
   const [monthly, setMonthly] = useState<MonthlyUtilization[]>([]);
   const [loading, setLoading] = useState(false);
+  const [equipOverrides, setEquipOverrides] = useState<Record<string, number>>({});
 
   // Filters
   const [filterAsset, setFilterAsset] = useState("__all__");
