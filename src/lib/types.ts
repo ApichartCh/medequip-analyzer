@@ -30,6 +30,13 @@ export interface ProcessedAsset {
   equipment_count: number;
 }
 
+export interface MonthlyUtilization {
+  asset_name: string;
+  site: string;
+  month: string;
+  utilization_pct: number;
+}
+
 export interface AIInsight {
   asset_name: string;
   risk_level: "Low" | "Medium" | "High";
