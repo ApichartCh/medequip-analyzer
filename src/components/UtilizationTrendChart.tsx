@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { TrendingUp } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -7,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceLine,
 } from "recharts";
 import type { MonthlyUtilization } from "@/lib/types";
 
@@ -26,11 +28,9 @@ const COLORS = [
 ];
 
 export function UtilizationTrendChart({ data }: Props) {
-  // Get unique months sorted and unique assets
   const months = [...new Set(data.map((d) => d.month))].sort();
   const assets = [...new Set(data.map((d) => d.asset_name))];
 
-  // Pivot: { month, asset1: pct, asset2: pct, ... }
   const chartData = months.map((month) => {
     const row: Record<string, string | number> = { month };
     assets.forEach((asset) => {
@@ -41,31 +41,38 @@ export function UtilizationTrendChart({ data }: Props) {
   });
 
   return (
-    <Card className="p-5">
-      <h3 className="font-semibold text-card-foreground mb-4">Monthly Utilization Trend</h3>
-      <ResponsiveContainer width="100%" height={350}>
-        <LineChart data={chartData}>
-          <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-          <YAxis
-            tick={{ fontSize: 11 }}
-            domain={[0, 100]}
-            tickFormatter={(v: number) => `${v}%`}
-          />
-          <Tooltip formatter={(v: number) => `${v}%`} />
-          <Legend />
-          {assets.map((asset, i) => (
-            <Line
-              key={asset}
-              type="monotone"
-              dataKey={asset}
-              stroke={COLORS[i % COLORS.length]}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
+    <Card className="overflow-hidden">
+      <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+        <TrendingUp className="h-5 w-5 text-primary" />
+        <h3 className="font-semibold text-card-foreground">Monthly Utilization Trend</h3>
+      </div>
+      <div className="p-5">
+        <ResponsiveContainer width="100%" height={350}>
+          <LineChart data={chartData}>
+            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              domain={[0, 100]}
+              tickFormatter={(v: number) => `${v}%`}
             />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+            <Tooltip formatter={(v: number) => `${v}%`} />
+            <Legend />
+            <ReferenceLine y={70} stroke="hsl(0,72%,51%)" strokeDasharray="4 4" label={{ value: "Overload 70%", fontSize: 10, fill: "hsl(0,72%,51%)" }} />
+            <ReferenceLine y={50} stroke="hsl(38,92%,50%)" strokeDasharray="4 4" label={{ value: "Optimal 50%", fontSize: 10, fill: "hsl(38,92%,50%)" }} />
+            {assets.map((asset, i) => (
+              <Line
+                key={asset}
+                type="monotone"
+                dataKey={asset}
+                stroke={COLORS[i % COLORS.length]}
+                strokeWidth={2.5}
+                dot={{ r: 4, strokeWidth: 2 }}
+                connectNulls
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </Card>
   );
 }

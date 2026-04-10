@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Activity, Trash2, Loader2 } from "lucide-react";
+import { Activity, Trash2, Loader2, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CsvUploader } from "@/components/CsvUploader";
 import { KpiCards } from "@/components/KpiCards";
@@ -21,16 +21,9 @@ import type { ProcessedAsset, TargetDemand, ActualUtilization, MonthlyUtilizatio
 
 const TARGET_COLS = ["asset_name", "team", "target_cases"];
 const ACTUAL_COLS = [
-  "asset_name",
-  "site",
-  "month",
-  "utilization_pct",
-  "usage_count",
-  "operation_hr",
-  "cycle_time",
-  "equipment_count",
+  "asset_name", "site", "month", "utilization_pct",
+  "usage_count", "operation_hr", "cycle_time", "equipment_count",
 ];
-
 const MONTHLY_KEY = "medequip_monthly_data";
 
 export default function Index() {
@@ -41,12 +34,10 @@ export default function Index() {
   const [loading, setLoading] = useState(false);
   const [equipOverrides, setEquipOverrides] = useState<Record<string, number>>({});
 
-  // Filters
   const [filterAsset, setFilterAsset] = useState("__all__");
   const [filterSite, setFilterSite] = useState("__all__");
   const [filterMonth, setFilterMonth] = useState("__all__");
 
-  // Restore from localStorage on mount
   useEffect(() => {
     const saved = loadFromLocalStorage();
     if (saved && saved.length > 0) setProcessed(saved);
@@ -56,7 +47,6 @@ export default function Index() {
     }
   }, []);
 
-  // Process when both files are uploaded
   useEffect(() => {
     if (!targets || !actuals) return;
     setLoading(true);
@@ -85,7 +75,6 @@ export default function Index() {
     localStorage.removeItem(MONTHLY_KEY);
   }, []);
 
-  // Apply equipment_count overrides to recalculate capacity & gap
   const simulatedProcessed = useMemo(() => {
     if (Object.keys(equipOverrides).length === 0) return processed;
     return processed.map((asset) => {
@@ -105,12 +94,10 @@ export default function Index() {
     });
   }, [processed, equipOverrides]);
 
-  // Derive filter options from full dataset
   const allAssets = useMemo(() => [...new Set(simulatedProcessed.map((d) => d.asset_name))].sort(), [simulatedProcessed]);
   const allSites = useMemo(() => [...new Set(simulatedProcessed.map((d) => d.site))].sort(), [simulatedProcessed]);
   const allMonths = useMemo(() => [...new Set(monthly.map((d) => d.month))].sort(), [monthly]);
 
-  // Filtered data
   const filteredProcessed = useMemo(() => {
     let data = simulatedProcessed;
     if (filterAsset !== "__all__") data = data.filter((d) => d.asset_name === filterAsset);
@@ -130,17 +117,18 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card sticky top-0 z-10">
+      {/* Header */}
+      <header className="border-b border-border bg-card sticky top-0 z-10 shadow-sm">
         <div className="container max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Activity className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <HeartPulse className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-card-foreground leading-tight">
+              <h1 className="text-xl font-bold text-card-foreground leading-tight tracking-tight">
                 MedEquip Analytics
               </h1>
-              <p className="text-xs text-muted-foreground">Equipment Utilization Dashboard</p>
+              <p className="text-xs text-muted-foreground">Hospital Equipment Utilization Dashboard</p>
             </div>
           </div>
           {hasDashboard && (
@@ -152,10 +140,14 @@ export default function Index() {
         </div>
       </header>
 
-      <main className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <main className="container max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Upload Section */}
         {!hasDashboard && (
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-4">Upload Data</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-1">Upload Data</h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Import your target demand and actual utilization CSV files to generate the dashboard.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <CsvUploader
                 label="Target Demand"
@@ -174,9 +166,9 @@ export default function Index() {
         )}
 
         {loading && (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-3 text-muted-foreground">Processing data…</span>
+            <span className="ml-3 text-muted-foreground font-medium">Processing data…</span>
           </div>
         )}
 

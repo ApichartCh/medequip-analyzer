@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import type { ProcessedAsset } from "@/lib/types";
 
@@ -15,22 +16,27 @@ export function DemandCapacityChart({ data }: Props) {
   }));
 
   return (
-    <Card className="p-5">
-      <h3 className="font-semibold text-card-foreground mb-4">Demand vs Capacity</h3>
-      <ResponsiveContainer width="100%" height={350}>
-        <BarChart data={chartData} barGap={4}>
-          <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={70} />
-          <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-          <Tooltip formatter={(v: number) => v.toLocaleString()} />
-          <Legend />
-          <Bar dataKey="Demand" radius={[4, 4, 0, 0]}>
-            {chartData.map((entry, i) => (
-              <Cell key={i} fill={entry.gap > 0 ? "hsl(0,72%,51%)" : "hsl(152,60%,40%)"} />
-            ))}
-          </Bar>
-          <Bar dataKey="Capacity" fill="hsl(214,84%,46%)" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+    <Card className="overflow-hidden">
+      <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+        <BarChart3 className="h-5 w-5 text-primary" />
+        <h3 className="font-semibold text-card-foreground">Demand vs Capacity</h3>
+      </div>
+      <div className="p-5">
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart data={chartData} barGap={4}>
+            <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={70} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+            <Tooltip formatter={(v: number) => v.toLocaleString()} />
+            <Legend />
+            <Bar dataKey="Demand" radius={[4, 4, 0, 0]}>
+              {chartData.map((entry, i) => (
+                <Cell key={i} fill={entry.gap > 0 ? "hsl(0,72%,51%)" : "hsl(152,60%,40%)"} />
+              ))}
+            </Bar>
+            <Bar dataKey="Capacity" fill="hsl(214,84%,46%)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </Card>
   );
 }
